@@ -55,9 +55,17 @@ export default function HospitalSimulation() {
 
       const response = await api.runFederatedLearning(nextRoundNumber, 10);
       setTrainingResult(response.result);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error running federated learning:', error);
-      alert('Failed to run federated learning. Make sure the backend is running.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+          ? error
+          : JSON.stringify(error);
+      alert(
+        `Failed to run federated learning. Make sure the backend is running.\nDetails: ${errorMessage}`
+      );
     } finally {
       setTraining(false);
     }

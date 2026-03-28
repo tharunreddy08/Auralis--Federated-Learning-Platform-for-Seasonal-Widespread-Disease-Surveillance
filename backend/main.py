@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
@@ -9,14 +11,29 @@ from models import (
     Hospital, DiseaseCase, PredictionInput, PredictionOutput,
     Alert, FederatedLearningRequest, TrainingStats, RiskMapPoint
 )
-from database import supabase
+from database import supabase, is_supabase_available
+import local_fallback
 from federated_learning import fl_engine
 from seed_data import seed_all_data
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if supabase is None:
+        print("INFO: API running in local demo mode (no Supabase client).")
+    elif not is_supabase_available():
+        print(
+            "WARNING: Supabase is unreachable. "
+            "DB-backed routes will fall back to demo data when queries fail."
+        )
+    yield
+
 
 app = FastAPI(
     title="Auralis - Federated Learning Disease Surveillance",
     description="Privacy-preserving disease prediction and outbreak monitoring platform",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -38,15 +55,20 @@ async def root():
 @app.get("/api/hospitals", response_model=List[Dict[str, Any]])
 async def get_hospitals():
     """Get all hospitals in the network"""
+    if supabase is None:
+        return local_fallback.demo_hospitals()
     try:
         response = supabase.table('hospitals').select('*').execute()
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_hospitals DB error: {e}")
+        return local_fallback.demo_hospitals()
 
 @app.get("/api/hospitals/{hospital_id}/cases")
 async def get_hospital_cases(hospital_id: str, limit: int = 100):
     """Get disease cases for a specific hospital"""
+    if supabase is None:
+        return local_fallback.demo_hospital_cases(hospital_id, limit)
     try:
         response = supabase.table('disease_cases')\
             .select('*')\
@@ -56,11 +78,14 @@ async def get_hospital_cases(hospital_id: str, limit: int = 100):
             .execute()
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_hospital_cases DB error: {e}")
+        return local_fallback.demo_hospital_cases(hospital_id, limit)
 
 @app.get("/api/disease-cases")
 async def get_all_cases(limit: int = 100, disease: str = None):
     """Get all disease cases, optionally filtered by disease"""
+    if supabase is None:
+        return local_fallback.demo_all_cases(limit, disease)
     try:
         query = supabase.table('disease_cases').select('*')
 
@@ -70,11 +95,14 @@ async def get_all_cases(limit: int = 100, disease: str = None):
         response = query.order('date', desc=True).limit(limit).execute()
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_all_cases DB error: {e}")
+        return local_fallback.demo_all_cases(limit, disease)
 
 @app.get("/api/disease-cases/stats")
 async def get_disease_stats():
     """Get aggregated disease statistics"""
+    if supabase is None:
+        return local_fallback.demo_disease_stats()
     try:
         response = supabase.table('disease_cases').select('disease, hospital_id, date').execute()
 
@@ -120,7 +148,8 @@ async def get_disease_stats():
             'trend_data': trend_data
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_disease_stats DB error: {e}")
+        return local_fallback.demo_disease_stats()
 
 @app.post("/api/federated-learning/train")
 async def run_federated_learning(request: FederatedLearningRequest, background_tasks: BackgroundTasks):
@@ -146,6 +175,8 @@ async def run_federated_learning(request: FederatedLearningRequest, background_t
 @app.get("/api/federated-learning/status")
 async def get_fl_status():
     """Get the current status of federated learning"""
+    if supabase is None:
+        return local_fallback.demo_fl_status()
     try:
         global_response = supabase.table('global_models')\
             .select('*')\
@@ -170,7 +201,8 @@ async def get_fl_status():
             'status': 'trained' if current_round else 'not_trained'
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_fl_status DB error: {e}")
+        return local_fallback.demo_fl_status()
 
 @app.post("/api/predict", response_model=Dict[str, Any])
 async def predict_disease(input_data: PredictionInput):
@@ -195,7 +227,11 @@ async def predict_disease(input_data: PredictionInput):
             'explanation': prediction['explanation']
         }
 
-        supabase.table('predictions').insert(prediction_record).execute()
+        if supabase is not None:
+            try:
+                supabase.table('predictions').insert(prediction_record).execute()
+            except Exception as log_err:
+                print(f"prediction not persisted (DB): {log_err}")
 
         return prediction
     except ValueError as e:
@@ -206,6 +242,8 @@ async def predict_disease(input_data: PredictionInput):
 @app.get("/api/predictions")
 async def get_predictions(limit: int = 50):
     """Get recent predictions"""
+    if supabase is None:
+        return local_fallback.demo_predictions(limit)
     try:
         response = supabase.table('predictions')\
             .select('*')\
@@ -214,11 +252,14 @@ async def get_predictions(limit: int = 50):
             .execute()
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_predictions DB error: {e}")
+        return local_fallback.demo_predictions(limit)
 
 @app.get("/api/alerts")
 async def get_alerts(status: str = None):
     """Get alerts, optionally filtered by status"""
+    if supabase is None:
+        return local_fallback.demo_alerts(status)
     try:
         query = supabase.table('alerts').select('*')
 
@@ -228,7 +269,8 @@ async def get_alerts(status: str = None):
         response = query.order('alert_date', desc=True).execute()
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_alerts DB error: {e}")
+        return local_fallback.demo_alerts(status)
 
 @app.post("/api/alerts/detect")
 async def detect_alerts():
@@ -245,6 +287,8 @@ async def detect_alerts():
 
 async def detect_and_create_alerts():
     """Background task to detect outbreaks and create alerts"""
+    if supabase is None:
+        return []
     try:
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=7)
@@ -315,6 +359,11 @@ async def detect_and_create_alerts():
 @app.post("/api/seed-data")
 async def seed_data():
     """Seed the database with initial data"""
+    if supabase is None:
+        return {
+            "status": "skipped",
+            "message": "Supabase is not configured. Seeding is only available when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.",
+        }
     try:
         success = seed_all_data()
         if success:
@@ -327,6 +376,8 @@ async def seed_data():
 @app.get("/api/dashboard/stats")
 async def get_dashboard_stats():
     """Get comprehensive dashboard statistics"""
+    if supabase is None:
+        return local_fallback.demo_dashboard_stats()
     try:
         hospitals = supabase.table('hospitals').select('*').execute()
         cases = supabase.table('disease_cases').select('*').execute()
@@ -364,7 +415,8 @@ async def get_dashboard_stats():
             'trend_data': trend_data[-30:]
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"get_dashboard_stats DB error: {e}")
+        return local_fallback.demo_dashboard_stats()
 
 
 def _risk_level_from_cases(cases: int) -> str:

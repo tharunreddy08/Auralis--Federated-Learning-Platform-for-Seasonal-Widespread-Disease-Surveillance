@@ -143,6 +143,9 @@ def generate_historical_alerts(hospital_ids):
 
 def seed_all_data():
     """Main function to seed all data"""
+    if supabase is None:
+        print("\n⚠️ Seed skipped: Supabase is not configured.")
+        return False
     try:
         clear_existing_data()
         hospital_ids = seed_hospitals()
@@ -156,3 +159,4 @@ def seed_all_data():
 
 if __name__ == "__main__":
     seed_all_data()
+

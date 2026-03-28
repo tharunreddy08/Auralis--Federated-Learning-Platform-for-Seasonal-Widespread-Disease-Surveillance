@@ -78,10 +78,24 @@ export interface RiskMapPoint {
   cases: number;
 }
 
+async function ensureResponse(response: Response) {
+  if (response.ok) return response;
+
+  let details = await response.text();
+  try {
+    const parsed = JSON.parse(details);
+    details = parsed.detail || parsed.message || JSON.stringify(parsed);
+  } catch {
+    // keep raw text
+ }
+
+  throw new Error(`HTTP ${response.status} ${response.statusText}: ${details}`);
+}
+
 export const api = {
   async getHospitals(): Promise<Hospital[]> {
     const response = await fetch(`${API_BASE_URL}/hospitals`);
-    if (!response.ok) throw new Error('Failed to fetch hospitals');
+    await ensureResponse(response);
     return response.json();
   },
 
@@ -109,13 +123,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ round_number: roundNumber, epochs }),
     });
-    if (!response.ok) throw new Error('Failed to run federated learning');
+    await ensureResponse(response);
     return response.json();
   },
 
   async getFederatedLearningStatus() {
     const response = await fetch(`${API_BASE_URL}/federated-learning/status`);
-    if (!response.ok) throw new Error('Failed to fetch FL status');
+    await ensureResponse(response);
     return response.json();
   },
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 
@@ -56,6 +56,8 @@ class RiskMapPoint(BaseModel):
     cases: int
 
 class ModelUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     id: Optional[str] = None
     hospital_id: str
     round_number: int
@@ -66,6 +68,8 @@ class ModelUpdate(BaseModel):
     created_at: Optional[datetime] = None
 
 class GlobalModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     id: Optional[str] = None
     round_number: int
     model_weights: Dict[str, Any]
