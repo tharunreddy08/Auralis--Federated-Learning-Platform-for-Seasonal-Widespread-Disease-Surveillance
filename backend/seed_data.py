@@ -1,52 +1,14 @@
-import random
-from datetime import datetime, timedelta, date
-from database import supabase
-import numpy as np
+"""
+Seed data for demo mode - no database operations needed
+"""
 
-SYMPTOMS_MAPPING = {
-    'flu': ['fever', 'cough', 'fatigue', 'body_aches', 'headache', 'sore_throat'],
-    'dengue': ['fever', 'severe_headache', 'joint_pain', 'body_aches', 'rash', 'nausea'],
-    'malaria': ['fever', 'chills', 'sweating', 'headache', 'nausea', 'vomiting', 'fatigue'],
-    'covid': ['fever', 'cough', 'fatigue', 'loss_of_taste', 'loss_of_smell', 'difficulty_breathing'],
-    'common_cold': ['runny_nose', 'sore_throat', 'cough', 'sneezing', 'mild_headache'],
-    'typhoid': ['fever', 'headache', 'weakness', 'stomach_pain', 'loss_of_appetite']
-}
-
-HOSPITALS = [
-    {'name': 'Central Medical Center', 'location': 'New York', 'trust_score': 0.92},
-    {'name': 'Regional Health Institute', 'location': 'California', 'trust_score': 0.88},
-    {'name': 'Metropolitan General Hospital', 'location': 'Texas', 'trust_score': 0.85}
-]
-
-def clear_existing_data():
-    """Clear all existing data from tables"""
-    print("Clearing existing data...")
-    supabase.table('alerts').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    supabase.table('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    supabase.table('model_updates').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    supabase.table('global_models').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    supabase.table('disease_cases').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    supabase.table('hospitals').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
-    print("Data cleared successfully")
-
-def seed_hospitals():
-    """Seed hospital data"""
-    print("Seeding hospitals...")
-    hospital_ids = []
-
-    for hospital in HOSPITALS:
-        response = supabase.table('hospitals').insert(hospital).execute()
-        hospital_ids.append(response.data[0]['id'])
-        print(f"Created hospital: {hospital['name']}")
-
-    return hospital_ids
-
-def generate_disease_cases(hospital_ids):
-    """Generate synthetic disease cases for all hospitals"""
-    print("Generating disease cases...")
-
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=90)
+def seed_all_data():
+    """
+    Seed demo data - no-op in local demo mode
+    """
+    print("INFO: Running in local demo mode - no database seeding required.")
+    print("Demo data is generated in-memory by local_fallback.py")
+    return True
 
     all_symptoms = list(set([s for symptoms in SYMPTOMS_MAPPING.values() for s in symptoms]))
 

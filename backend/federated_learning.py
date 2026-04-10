@@ -5,7 +5,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from typing import List, Dict, Any, Tuple
 import json
-from database import supabase, is_supabase_available
+import local_fallback
 
 
 class FederatedLearningEngine:
@@ -124,119 +124,43 @@ class FederatedLearningEngine:
 
     async def run_federated_round(self, round_number: int, epochs: int = 10) -> Dict[str, Any]:
         """
-        Execute one round of federated learning
+        Execute one round of federated learning (demo mode only)
         """
-        if not is_supabase_available():
-            demo_weights = self._default_global_weights()
-            self.global_model = demo_weights
-            return {
-                'round_number': round_number,
-                'global_accuracy': 0.85,
-                'participating_hospitals': 2,
-                'training_stats': [
-                    {
-                        'hospital_id': 'demo-a',
-                        'hospital_name': 'Demo Hospital A',
-                        'samples_trained': 50,
-                        'accuracy': 0.86,
-                        'loss': 0.14,
-                    },
-                    {
-                        'hospital_id': 'demo-b',
-                        'hospital_name': 'Demo Hospital B',
-                        'samples_trained': 48,
-                        'accuracy': 0.84,
-                        'loss': 0.16,
-                    },
-                ],
-                'global_weights': demo_weights,
-            }
-
-        hospitals_response = supabase.table('hospitals').select('*').execute()
-        hospitals = hospitals_response.data
-
-        if not hospitals:
-            raise ValueError("No hospitals found in database")
-
-        local_results = []
-        training_stats = []
-
-        for hospital in hospitals:
-            try:
-                result = self.train_local_model(hospital['id'], epochs)
-
-                model_update_data = {
-                    'hospital_id': hospital['id'],
-                    'round_number': round_number,
-                    'model_weights': result['weights'],
-                    'accuracy': result['test_accuracy'],
-                    'loss': 1 - result['test_accuracy'],
-                    'samples_trained': result['samples_trained']
-                }
-
-                supabase.table('model_updates').insert(model_update_data).execute()
-
-                local_results.append(result['weights'])
-                training_stats.append({
-                    'hospital_id': hospital['id'],
-                    'hospital_name': hospital['name'],
-                    'samples_trained': result['samples_trained'],
-                    'accuracy': result['test_accuracy'],
-                    'loss': 1 - result['test_accuracy']
-                })
-
-            except Exception as e:
-                print(f"Error training model for hospital {hospital['name']}: {str(e)}")
-                continue
-
-        if not local_results:
-            raise ValueError("No successful local training results")
-
-        global_weights = self._aggregate_weights(local_results)
-
-        avg_accuracy = np.mean([stat['accuracy'] for stat in training_stats])
-
-        global_model_data = {
-            'round_number': round_number,
-            'model_weights': global_weights,
-            'accuracy': float(avg_accuracy),
-            'participating_hospitals': len(training_stats)
-        }
-
-        # Delete existing model for this round (if any) to avoid RLS update conflicts
-        try:
-            supabase.table('global_models').delete().eq('round_number', round_number).execute()
-        except Exception as e:
-            print(f"Note: Could not delete existing model: {str(e)}")
-
-        # Insert the new global model
-        supabase.table('global_models').insert(global_model_data).execute()
-
-        self.global_model = global_weights
-
+        # Always use demo mode - no database operations
+        demo_weights = self._default_global_weights()
+        self.global_model = demo_weights
         return {
             'round_number': round_number,
-            'global_accuracy': float(avg_accuracy),
-            'participating_hospitals': len(training_stats),
-            'training_stats': training_stats,
-            'global_weights': global_weights
+            'global_accuracy': 0.85,
+            'participating_hospitals': 2,
+            'training_stats': [
+                {
+                    'hospital_id': 'demo-a',
+                    'hospital_name': 'Demo Hospital A',
+                    'samples_trained': 50,
+                    'accuracy': 0.86,
+                    'loss': 0.14,
+                },
+                {
+                    'hospital_id': 'demo-b',
+                    'hospital_name': 'Demo Hospital B',
+                    'samples_trained': 48,
+                    'accuracy': 0.84,
+                    'loss': 0.16,
+                },
+            ],
+            'global_weights': demo_weights,
         }
 
     def predict(self, symptoms: List[str], temperature: float, humidity: float,
                 age: int = 35, gender: str = 'male') -> Dict[str, Any]:
         """
-        Make a prediction using the global model
+        Make a prediction using the global model (demo mode)
         """
         if self.global_model is None:
-            if supabase is None:
-                self.global_model = self._default_global_weights()
-            else:
-                response = supabase.table('global_models').select('*').order('round_number', desc=True).limit(1).execute()
-                if response.data:
-                    self.global_model = response.data[0]['model_weights']
-                else:
-                    raise ValueError("No global model available. Please run federated learning first.")
+            self.global_model = self._default_global_weights()
 
+        # Use demo prediction logic (same as before)
         feature_vector = []
         for symptom in self.all_symptoms:
             feature_vector.append(1 if symptom in symptoms else 0)
