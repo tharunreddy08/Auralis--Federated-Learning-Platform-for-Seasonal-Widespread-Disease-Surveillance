@@ -1,0 +1,58 @@
+{
+  "name": "Hospital",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Hospital Name"
+    },
+    "code": {
+      "type": "string",
+      "title": "Hospital Code"
+    },
+    "location": {
+      "type": "string",
+      "title": "Location"
+    },
+    "latitude": {
+      "type": "number",
+      "title": "Latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "title": "Longitude"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "title": "Status"
+    },
+    "total_patients": {
+      "type": "number",
+      "title": "Total Patients Reported"
+    },
+    "last_model_update": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Model Update"
+    },
+    "contact_email": {
+      "type": "string",
+      "title": "Contact Email"
+    },
+    "region": {
+      "type": "string",
+      "title": "Region"
+    }
+  },
+  "required": [
+    "name",
+    "code",
+    "location",
+    "status"
+  ]
+}

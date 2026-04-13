@@ -1,0 +1,55 @@
+{
+  "name": "Prediction",
+  "type": "object",
+  "properties": {
+    "disease": {
+      "type": "string",
+      "title": "Disease",
+      "enum": [
+        "influenza",
+        "dengue",
+        "malaria",
+        "covid19",
+        "cholera",
+        "tuberculosis",
+        "typhoid",
+        "hepatitis"
+      ]
+    },
+    "region": {
+      "type": "string",
+      "title": "Region"
+    },
+    "predicted_cases": {
+      "type": "number",
+      "title": "Predicted Cases"
+    },
+    "confidence": {
+      "type": "number",
+      "title": "Confidence Score"
+    },
+    "prediction_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Prediction Date"
+    },
+    "model_version": {
+      "type": "string",
+      "title": "Model Version"
+    },
+    "trend": {
+      "type": "string",
+      "enum": [
+        "increasing",
+        "stable",
+        "decreasing"
+      ],
+      "title": "Trend"
+    }
+  },
+  "required": [
+    "disease",
+    "region",
+    "predicted_cases"
+  ]
+}

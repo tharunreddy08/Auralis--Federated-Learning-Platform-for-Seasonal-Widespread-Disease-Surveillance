@@ -1,0 +1,70 @@
+{
+  "name": "DiseaseAlert",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Alert Title"
+    },
+    "disease": {
+      "type": "string",
+      "title": "Disease",
+      "enum": [
+        "influenza",
+        "dengue",
+        "malaria",
+        "covid19",
+        "cholera",
+        "tuberculosis",
+        "typhoid",
+        "hepatitis"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "title": "Severity"
+    },
+    "region": {
+      "type": "string",
+      "title": "Region"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "case_count": {
+      "type": "number",
+      "title": "Case Count"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "monitoring",
+        "resolved"
+      ],
+      "title": "Status"
+    },
+    "latitude": {
+      "type": "number",
+      "title": "Latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "title": "Longitude"
+    }
+  },
+  "required": [
+    "title",
+    "disease",
+    "severity",
+    "region",
+    "status"
+  ]
+}
