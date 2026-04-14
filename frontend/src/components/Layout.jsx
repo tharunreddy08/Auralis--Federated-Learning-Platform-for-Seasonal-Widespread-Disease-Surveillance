@@ -8,7 +8,6 @@ import {
   Eye,
   LayoutDashboard,
   Bell,
-  Map,
   BarChart3,
   Upload,
   Brain,
@@ -52,7 +51,6 @@ const roleConfig = {
     color: "text-success",
     nav: [
       { label: "Dashboard", path: "/official", icon: LayoutDashboard },
-      { label: "Heatmap", path: "/official/heatmap", icon: Map },
       { label: "Alerts", path: "/official/alerts", icon: Bell },
       { label: "Analytics", path: "/official/analytics", icon: BarChart3 },
       { label: "AI Prediction", path: "/official/prediction", icon: Brain },
@@ -73,6 +71,20 @@ export default function Layout() {
 
   const config = roleConfig[currentRole];
   const RoleIcon = config.icon;
+
+  const handleNotificationClick = () => {
+    if (currentRole === "admin") {
+      navigate("/admin/alerts");
+      return;
+    }
+
+    if (currentRole === "official") {
+      navigate("/official/alerts");
+      return;
+    }
+
+    navigate("/hospital/updates");
+  };
 
   const handleLogout = async () => {
     navigate("/");
@@ -176,10 +188,16 @@ export default function Layout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <button
+              type="button"
+              onClick={handleNotificationClick}
+              className="relative rounded-md p-1 hover:bg-accent"
+              aria-label="Open notifications"
+              title="Open notifications"
+            >
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
-            </div>
+            </button>
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Users className="w-4 h-4 text-primary" />
             </div>

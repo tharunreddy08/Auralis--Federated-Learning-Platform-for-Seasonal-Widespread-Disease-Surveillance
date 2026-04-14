@@ -6,13 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 import AlertsList from "../../components/dashboard/AlertsList";
 import { motion } from "framer-motion";
 
 export default function AdminAlerts() {
+  const { toast } = useToast();
   const [alerts, setAlerts] = useState([]);
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: "", disease: "influenza", severity: "medium", region: "", description: "", case_count: 0, status: "active"
   });
@@ -30,13 +33,51 @@ export default function AdminAlerts() {
   };
 
   const handleCreate = async () => {
+    if (!form.title.trim() || !form.region.trim()) {
+      toast({
+        title: "Missing required fields",
+        description: "Please enter both Title and Region.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if ((Number(form.case_count) || 0) < 0) {
+      toast({
+        title: "Invalid case count",
+        description: "Case Count cannot be negative.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await createDiseaseAlertEntity(form);
+      await createDiseaseAlertEntity({
+        ...form,
+        title: form.title.trim(),
+        region: form.region.trim(),
+        description: form.description.trim(),
+        case_count: Number(form.case_count) || 0
+      });
+
+      toast({
+        title: "Alert created",
+        description: "Disease alert created successfully."
+      });
+
       setDialogOpen(false);
       setForm({ title: "", disease: "influenza", severity: "medium", region: "", description: "", case_count: 0, status: "active" });
       loadAlerts();
     } catch (error) {
-      console.error('Failed to create alert:', error);
+      console.error("Failed to create alert:", error);
+      toast({
+        title: "Create alert failed",
+        description: error?.message || "Unable to create alert. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -102,7 +143,9 @@ export default function AdminAlerts() {
                 <Label>Description</Label>
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Alert details..." />
               </div>
-              <Button onClick={handleCreate} className="w-full">Create Alert</Button>
+              <Button onClick={handleCreate} className="w-full" disabled={submitting}>
+                {submitting ? "Creating..." : "Create Alert"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

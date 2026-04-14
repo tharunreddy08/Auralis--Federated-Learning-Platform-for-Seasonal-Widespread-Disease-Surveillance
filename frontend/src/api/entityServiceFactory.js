@@ -1,5 +1,6 @@
 import { apiRequest, normalizeDocument, normalizeDocuments } from './httpClient.js';
 
+/** @type {Record<string, string>} */
 const sortAliases = {
   '-created_date': '-createdAt',
   'created_date': 'createdAt',
@@ -7,9 +8,18 @@ const sortAliases = {
   'updated_date': 'updatedAt'
 };
 
+/** @param {string} sort */
 const normalizeSort = (sort) => sortAliases[sort] || sort;
 
+/**
+ * @param {string} endpoint
+ */
 export const createEntityService = (endpoint) => ({
+  /**
+   * @param {string} [sort='-createdAt']
+   * @param {number} [limit=20]
+   * @param {Record<string, unknown>} [filters={}]
+   */
   list: async (sort = '-createdAt', limit = 20, filters = {}) => {
     const response = await apiRequest(endpoint, {
       query: {
@@ -22,8 +32,12 @@ export const createEntityService = (endpoint) => ({
     const items = Array.isArray(response) ? response : response?.items || [];
     return normalizeDocuments(items);
   },
+  /** @param {Record<string, unknown>} payload */
   create: async (payload) => normalizeDocument(await apiRequest(endpoint, { method: 'POST', body: payload })),
+  /** @param {string} id @param {Record<string, unknown>} payload */
   update: async (id, payload) => normalizeDocument(await apiRequest(`${endpoint}/${id}`, { method: 'PUT', body: payload })),
+  /** @param {string} id */
   delete: async (id) => apiRequest(`${endpoint}/${id}`, { method: 'DELETE' }),
+  /** @param {Array<Record<string, unknown>>} items */
   bulkCreate: async (items) => Promise.all(items.map((item) => apiRequest(endpoint, { method: 'POST', body: item })))
 });
