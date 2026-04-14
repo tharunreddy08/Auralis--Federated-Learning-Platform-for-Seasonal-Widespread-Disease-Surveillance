@@ -1,0 +1,21 @@
+hospital_name,disease,age,gender,symptoms,severity,outcome,report_date,region
+City General Hospital,influenza,35,male,fever|cough|headache,mild,under_treatment,2026-04-14,North Region
+Lagos Teaching Hospital,dengue,28,female,fever|rash|body ache|headache,severe,recovered,2026-04-13,Southwest
+Port Harcourt Medical,malaria,42,male,fever|chills|fatigue|nausea,moderate,under_treatment,2026-04-12,South-South
+Abuja Federal Hospital,covid19,55,male,fever|cough|shortness of breath,severe,under_treatment,2026-04-11,North-Central
+Kano State Hospital,cholera,19,female,diarrhea|vomiting|dehydration,critical,recovered,2026-04-10,North
+Ibadan Specialist,typhoid,31,female,fever|abdominal pain|weakness,moderate,under_treatment,2026-04-09,Southwest
+National Medical Center,influenza,23,male,cough|sore throat|fatigue,mild,recovered,2026-04-08,Lagos
+River State Teaching,dengue,29,male,fever|headache|body ache,moderate,under_treatment,2026-04-07,Port Harcourt
+Federal Medical Centre,malaria,16,female,fever|fatigue,mild,under_treatment,2026-04-06,Abuja
+Kano Teaching Hospital,covid19,38,female,fever|cough|loss of taste,moderate,recovered,2026-04-05,Kano
+Lagos General Hospital,cholera,24,male,diarrhea|dehydration|weakness,moderate,recovered,2026-04-04,Southwest
+Port Harcourt Hospital,tuberculosis,45,male,cough|weight loss|night sweats,severe,under_treatment,2026-04-03,South-South
+Abuja Medical Center,influenza,12,female,cough|sore throat,mild,recovered,2026-04-02,North-Central
+National Health Institute,dengue,36,female,fever|rash|severe headache,severe,under_treatment,2026-04-01,Lagos
+Enugu Teaching Hospital,malaria,27,male,fever|chills|body ache,moderate,under_treatment,2026-03-31,Southeast
+Sokoto State Hospital,typhoid,33,female,fever|abdominal pain,moderate,recovered,2026-03-30,Northwest
+Calabar Medical Center,hepatitis,41,male,fever|jaundice|fatigue,severe,under_treatment,2026-03-29,South-South
+Lagos Specialist Hospital,covid19,39,female,fever|cough|fatigue,moderate,recovered,2026-03-28,Southwest
+Maiduguri Hospital,influenza,20,male,cough|headache|fatigue,mild,recovered,2026-03-27,Northeast
+Jos Teaching Hospital,dengue,26,female,fever|headache,moderate,recovered,2026-03-26,North-Central
