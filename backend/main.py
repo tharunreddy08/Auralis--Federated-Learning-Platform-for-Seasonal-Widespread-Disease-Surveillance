@@ -142,12 +142,14 @@ async def detect_and_create_alerts():
 @app.post("/api/seed-data")
 async def seed_data():
     """Seed the database with initial data"""
-    success = seed_all_data()
-    if success:
-        return {"status": "success", "message": "Demo data is always available"}
-    else:
-        return {"status": "error", "message": "Seeding failed"}
-            raise HTTPException(status_code=500, detail="Failed to seed data")
+    try:
+        success = seed_all_data()
+        if success:
+            return {"status": "success", "message": "Demo data is always available"}
+
+        raise HTTPException(status_code=500, detail="Failed to seed data")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

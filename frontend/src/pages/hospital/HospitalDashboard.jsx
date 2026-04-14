@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 export default function HospitalDashboard() {
   const [patientCount, setPatientCount] = useState(0);
   const [modelUpdates, setModelUpdates] = useState([]);
+  const [recentPatients, setRecentPatients] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -17,15 +18,19 @@ export default function HospitalDashboard() {
 
   const loadData = async () => {
     try {
-      const [patients, updates] = await Promise.all([
-        dataClient.entities.PatientData.list("-created_date", 1),
+      const [patientsResponse, updates] = await Promise.all([
+        dataClient.entities.PatientData.listWithMeta("-created_date", 5),
         dataClient.entities.ModelUpdate.list("-created_date", 5),
       ]);
-      setPatientCount(patients.length);
+
+      const total = Number(patientsResponse?.pagination?.total || 0);
+      setPatientCount(total);
+      setRecentPatients(Array.isArray(patientsResponse?.items) ? patientsResponse.items : []);
       setModelUpdates(updates);
     } catch (error) {
       console.error("Failed to load hospital dashboard data:", error);
       setPatientCount(0);
+      setRecentPatients([]);
       setModelUpdates([]);
     }
   };
@@ -76,6 +81,33 @@ export default function HospitalDashboard() {
       </div>
 
       <DiseaseChart data={weeklyData} type="area" title="Weekly Reporting Activity" subtitle="Patient data submissions this week" />
+
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Recent Uploaded Records</h3>
+          <span className="text-xs text-muted-foreground">Last {recentPatients.length} records</span>
+        </div>
+
+        {recentPatients.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No patient records uploaded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {recentPatients.map((row) => (
+              <div key={row.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border border-border rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-medium capitalize">{row.disease} - {row.hospital_name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {row.severity} severity{row.region ? ` • ${row.region}` : ""}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {row.report_date ? new Date(row.report_date).toLocaleString() : "-"}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
