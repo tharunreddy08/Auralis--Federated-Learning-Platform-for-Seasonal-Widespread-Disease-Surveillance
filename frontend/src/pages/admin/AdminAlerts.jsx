@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchDiseaseAlertEntities, createDiseaseAlertEntity } from "@/api/diseaseAlertService";
-import { Bell, Plus, Filter } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -89,7 +89,7 @@ export default function AdminAlerts() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold tracking-tight">Disease Alerts</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {alerts.filter(a => a.status === "active").length} active alerts
+            {alerts.filter(a => a.status === "active").length} active alerts • {alerts.filter(a => a.status === "resolved").length} solved updates
           </p>
         </motion.div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -166,7 +166,7 @@ export default function AdminAlerts() {
         ))}
       </div>
 
-      <AlertsList alerts={filtered} />
+      <AlertsList alerts={filtered} showResolutionDetails />
     </div>
   );
 }

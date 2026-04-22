@@ -1,398 +1,243 @@
-# Auralis - System Architecture
+# Auralis Architecture
 
 ## Overview
 
-Auralis is a federated learning platform that enables multiple hospitals to collaboratively train AI models for disease prediction while maintaining complete data privacy. This document explains the system architecture and key components.
+Auralis is a role-based disease surveillance platform built with a React + Vite frontend, a Node.js + Express backend, and MongoDB/Mongoose for persistence. The app is organized around three separate user roles:
 
-## High-Level Architecture
+1. Hospital
+2. Government Admin
+3. Health Official
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Frontend (React)                       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-│  │Dashboard │  │Hospitals │  │Prediction│  │  Alerts  │     │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
-└───────────────────────┬─────────────────────────────────────┘
-                        │ REST API
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Backend (FastAPI)                         │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │         Federated Learning Engine                    │   │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐      │   │
-│  │  │  Hospital  │  │  Hospital  │  │  Hospital  │      │   │
-│  │  │     1      │  │     2      │  │     3      │      │   │
-│  │  │   Model    │  │   Model    │  │   Model    │      │   │
-│  │  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘      │   │
-│  │        │                │                │           │   │
-│  │        └────────────────┼────────────────┘           │   │
-│  │                         ▼                            │   │
-│  │                  ┌─────────────┐                     │   │
-│  │                  │   Global    │                     │   │
-│  │                  │   Model     │                     │   │
-│  │                  └─────────────┘                     │   │
-│  └──────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │         Disease Prediction Engine                     │  │
-│  │  - Random Forest Classifier                           │  │
-│  │  - Feature Engineering                                │  │
-│  │  - Explainable AI (Feature Importance)               │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         Alert Detection System                        │  │
-│  │  - Temporal Analysis                                  │  │
-│  │  - Threshold-based Detection                          │  │
-│  │  - Severity Classification                            │  │
-│  └──────────────────────────────────────────────────────┘  │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Database (PostgreSQL/Supabase)                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │Hospitals │  │  Cases   │  │Predictions│ │  Alerts  │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
-│  ┌──────────┐  ┌──────────┐                                │
-│  │  Model   │  │  Global  │                                │
-│  │ Updates  │  │  Models  │                                │
-│  └──────────┘  └──────────┘                                │
-└─────────────────────────────────────────────────────────────┘
+Each role has its own dashboard, actions, and data views, but all of them share the same authentication layer, API surface, and data model.
+
+## System View
+
+```mermaid
+flowchart LR
+  U[Users] --> F[React + Vite Frontend]
+  F --> A[AuthContext + Local Storage Session]
+  F --> B[Express API /api]
+  B --> M[MongoDB + Mongoose Models]
+
+  B --> R1[Hospital Feature Routes]
+  B --> R2[Admin Feature Routes]
+  B --> R3[Official Feature Routes]
+
+  R1 --> M
+  R2 --> M
+  R3 --> M
 ```
 
-## Federated Learning Workflow
+## Frontend Architecture
 
-### Step 1: Local Training
-```
-Hospital 1              Hospital 2              Hospital 3
-    │                       │                       │
-    ▼                       ▼                       ▼
-┌─────────┐           ┌─────────┐           ┌─────────┐
-│ Local   │           │ Local   │           │ Local   │
-│ Data    │           │ Data    │           │ Data    │
-│ (150    │           │ (150    │           │ (150    │
-│ cases)  │           │ cases)  │           │ cases)  │
-└────┬────┘           └────┬────┘           └────┬────┘
-     │                     │                     │
-     ▼                     ▼                     ▼
-┌─────────┐           ┌─────────┐           ┌─────────┐
-│  Train  │           │  Train  │           │  Train  │
-│  Local  │           │  Local  │           │  Local  │
-│  Model  │           │  Model  │           │  Model  │
-└────┬────┘           └────┬────┘           └────┬────┘
-     │                     │                     │
-     ▼                     ▼                     ▼
-┌─────────┐           ┌─────────┐           ┌─────────┐
-│ Model   │           │ Model   │           │ Model   │
-│ Weights │           │ Weights │           │ Weights │
-└─────────┘           └─────────┘           └─────────┘
-```
+The frontend is a single-page app that uses React Router to switch between pages after login.
 
-### Step 2: Weight Aggregation
-```
-     Model W1            Model W2            Model W3
-         │                   │                   │
-         └───────────────────┼───────────────────┘
-                             ▼
-                    ┌────────────────┐
-                    │   Federated    │
-                    │   Averaging    │
-                    │                │
-                    │ Global_W =     │
-                    │ (W1+W2+W3)/3   │
-                    └────────┬───────┘
-                             ▼
-                    ┌────────────────┐
-                    │  Global Model  │
-                    │   Weights      │
-                    └────────────────┘
-```
+Main frontend layers:
 
-### Step 3: Global Model Distribution
-```
-                    ┌────────────────┐
-                    │  Global Model  │
-                    └────────┬───────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-    Hospital 1          Hospital 2          Hospital 3
-    (can use           (can use           (can use
-     global             global             global
-     model)             model)             model)
-```
+- `src/pages/` for role-specific screens
+- `src/components/` for reusable UI and dashboard widgets
+- `src/lib/AuthContext.jsx` for session state and demo account handling
+- `src/api/roleFeatureService.js` for role-based API calls
+- `src/components/Layout.jsx` for the authenticated shell and role navigation
 
-## Key Privacy Features
+### Entry Flow
 
-### 1. Data Isolation
-- Patient data **NEVER** leaves the hospital
-- Each hospital maintains its own local database
-- Only aggregated model parameters are shared
+1. `Landing` is the public home screen.
+2. `Login` handles sign-in, account creation, and password reset.
+3. `RoleSelection` is shown after authentication.
+4. `Layout` wraps the protected role dashboards.
 
-### 2. Differential Privacy (Conceptual)
-- Individual patient data cannot be reverse-engineered from model weights
-- Aggregation provides inherent privacy protection
-- No raw data exchange between hospitals
+## Backend Architecture
 
-### 3. Secure Aggregation
-- Only model weights (numerical arrays) are transmitted
-- No patient identifiers, symptoms, or case details shared
-- Central server only sees aggregated results
+The backend is a REST API built with Express. It exposes two kinds of routes:
 
-## Data Flow
+- Generic CRUD routes for core collections
+- Role feature routes for admin, hospital, and official workflows
 
-### Training Flow
-```
-1. User clicks "Run Federated Learning"
-         ↓
-2. Backend receives training request
-         ↓
-3. For each hospital:
-   a. Fetch local cases from database
-   b. Prepare features (symptoms, temp, humidity)
-   c. Train Random Forest model
-   d. Extract model weights
-   e. Store weights in model_updates table
-         ↓
-4. Aggregate all hospital weights
-         ↓
-5. Create global model
-         ↓
-6. Store global model in global_models table
-         ↓
-7. Return training statistics to frontend
-```
+### Route Groups
 
-### Prediction Flow
-```
-1. User inputs symptoms + environmental data
-         ↓
-2. Frontend sends prediction request
-         ↓
-3. Backend loads global model weights
-         ↓
-4. Prepare feature vector from input
-         ↓
-5. Apply model weights to features
-         ↓
-6. Calculate disease probabilities
-         ↓
-7. Compute feature importance
-         ↓
-8. Store prediction in predictions table
-         ↓
-9. Return prediction + explanation to frontend
-```
+- `/api/hospitals`, `/api/disease-alerts`, `/api/model-updates`, `/api/patient-data`, `/api/predictions`
+- `/api/admin/*`
+- `/api/hospital/*`
+- `/api/official/*`
 
-### Alert Detection Flow
-```
-1. Scheduled job or manual trigger
-         ↓
-2. Query cases from last 7 days
-         ↓
-3. Group by location and disease
-         ↓
-4. Compare counts to threshold (20 cases)
-         ↓
-5. For cases exceeding threshold:
-   a. Calculate severity (low/medium/high/critical)
-   b. Create alert record
-   c. Set status to "active"
-         ↓
-6. Store alerts in alerts table
-         ↓
-7. Return created alerts
-```
+## Data Model
 
-## Database Schema
+The current app uses MongoDB collections through Mongoose models:
 
-### Core Tables
+- `Hospital`
+- `DiseaseAlert`
+- `ModelUpdate`
+- `PatientData`
+- `Prediction`
+- `AppUser`
+- `SystemLog`
 
-1. **hospitals**
-   - Stores hospital information
-   - Tracks trust score and total cases
+These collections support both the dashboard summaries and the role-specific operational views.
 
-2. **disease_cases**
-   - Local hospital case records
-   - Includes symptoms, environmental data
-   - Patient demographics
+## How The Three Roles Work
 
-3. **model_updates**
-   - Tracks each hospital's model updates
-   - Stores weights, accuracy, loss per round
+### 1. Hospital Role
 
-4. **global_models**
-   - Aggregated global model per round
-   - Stores combined weights and accuracy
+Purpose: submit local surveillance data and monitor the hospital’s own model and history.
 
-5. **predictions**
-   - User predictions history
-   - Stores input, output, and explanations
+Frontend pages:
 
-6. **alerts**
-   - Outbreak alerts
-   - Tracks severity, status, location
+- Dashboard
+- Upload Data
+- Train Model
+- Model Updates
+- Data History
+- Training History
+- Model Performance
 
-## Machine Learning Pipeline
+Backend routes used:
 
-### Feature Engineering
-```
-Input Features (22 total):
-├── Symptom Features (18)
-│   ├── fever: 0 or 1
-│   ├── cough: 0 or 1
-│   ├── fatigue: 0 or 1
-│   └── ... (15 more symptoms)
-├── Environmental Features (2)
-│   ├── temperature: continuous (°C)
-│   └── humidity: continuous (%)
-└── Patient Demographics (2)
-    ├── age: continuous (years)
-    └── gender: 0 or 1 (binary)
+- `/api/hospital/data-history`
+- `/api/hospital/training-history`
+- `/api/hospital/model-performance`
+- `/api/hospital/validate-data`
+
+How it works:
+
+1. The hospital user logs in with the hospital role.
+2. The dashboard shows local totals, recent uploads, and training status.
+3. Patient records are uploaded into the backend and stored in MongoDB.
+4. The hospital can train a local model and review the resulting updates.
+5. Historical rows and model quality can be filtered and reviewed later.
+
+### 2. Government Admin Role
+
+Purpose: manage the national view of hospitals, users, alerts, reports, and system activity.
+
+Frontend pages:
+
+- Dashboard
+- Hospitals
+- Alerts
+- Analytics
+- Federated Learning
+- Model Performance
+- User Management
+- Reports & Export
+- System Logs
+
+Backend routes used:
+
+- `/api/admin/model-performance`
+- `/api/admin/users`
+- `/api/admin/reports/analytics`
+- `/api/admin/reports/export`
+- `/api/admin/system-logs`
+
+How it works:
+
+1. The admin sees the national dashboard after sign-in.
+2. The admin dashboard aggregates hospitals, alerts, and monitored records.
+3. User management shows hospital admins and health officials derived from the data model.
+4. Reports can be filtered and exported as CSV or PDF.
+5. System logs combine stored logs and derived activity from alerts, training, and uploads.
+
+### 3. Health Official Role
+
+Purpose: monitor outbreaks, inspect spread patterns, and coordinate response actions.
+
+Frontend pages:
+
+- Dashboard
+- Alerts
+- Heatmap
+- Analytics
+- AI Prediction
+- Reports
+- Alert Detail
+
+Backend routes used:
+
+- `/api/official/heatmap-risk`
+- `/api/official/analytics`
+- `/api/official/alerts/:alertId/details`
+- `/api/official/reports/summary`
+
+How it works:
+
+1. The health official logs in and sees the public-health dashboard.
+2. The dashboard summarizes active outbreaks, regions affected, and trend views.
+3. Heatmap and analytics views are filtered by region and date.
+4. Alert detail pages show the alert record plus suggested response actions.
+5. Reports provide outbreak summaries and top affected regions.
+
+## Request Flow
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Frontend
+  participant API
+  participant MongoDB
+
+  User->>Frontend: sign in / pick role
+  Frontend->>Frontend: store session in localStorage
+  Frontend->>API: request role dashboard data
+  API->>MongoDB: query matching collection(s)
+  MongoDB-->>API: records
+  API-->>Frontend: normalized JSON response
+  Frontend-->>User: render dashboard, table, chart, or map
 ```
 
-### Model Architecture
-```
-Random Forest Classifier
-├── n_estimators: 100 trees
-├── max_depth: 10
-├── Features: 22 input features
-└── Output Classes: 6 diseases
-    ├── flu
-    ├── dengue
-    ├── malaria
-    ├── covid
-    ├── common_cold
-    └── typhoid
-```
+## Frontend State And Auth
 
-### Training Process
-```
-1. Data Preparation
-   ├── Load cases from database
-   ├── Extract symptoms (one-hot encoding)
-   ├── Normalize temperature and humidity
-   └── Split into train/test (80/20)
+Authentication is currently client-managed for the demo workflow:
 
-2. Model Training
-   ├── Fit Random Forest on training data
-   ├── Validate on test data
-   └── Extract feature importances
+- Session data is stored in `localStorage`
+- Demo users are available for the three roles
+- Protected routes guard the role dashboards
+- `Layout` changes navigation based on the current role path
 
-3. Weight Extraction
-   ├── Get feature importances
-   ├── Get class labels
-   └── Serialize to JSON
+## Operational Flows
 
-4. Federated Aggregation
-   ├── Collect weights from all hospitals
-   ├── Average feature importances
-   └── Create global model
-```
+### Hospital Data Flow
 
-## Alert Detection Algorithm
+1. Upload or create patient records.
+2. Backend stores them in `PatientData`.
+3. Hospital dashboards and history pages query those records.
+4. Training pages write model updates into `ModelUpdate`.
 
-```python
-def detect_alerts():
-    # Get cases from last 7 days
-    recent_cases = get_cases(last_7_days)
+### Admin Data Flow
 
-    # Group by location and disease
-    grouped = group_by(recent_cases, ['location', 'disease'])
+1. Admin reads aggregated metrics from hospitals, alerts, predictions, and logs.
+2. Backend composes summaries from multiple collections.
+3. Export endpoints package the data into CSV or PDF.
 
-    # Check thresholds
-    for location, disease, count in grouped:
-        if count > THRESHOLD:
-            severity = calculate_severity(count, THRESHOLD)
-            create_alert(location, disease, count, severity)
-```
+### Health Official Data Flow
 
-### Severity Classification
-- **Low**: 20-25 cases (5-25% above threshold)
-- **Medium**: 26-30 cases (26-50% above threshold)
-- **High**: 31-40 cases (51-100% above threshold)
-- **Critical**: 40+ cases (>100% above threshold)
+1. Official reads outbreak records from `DiseaseAlert`, `PatientData`, and `Prediction`.
+2. Backend groups the data by region, disease, and severity.
+3. Frontend renders maps, charts, and per-alert recommendations.
 
-## Scalability Considerations
+## Security Model
 
-### Current Implementation
-- 3 hospitals
-- ~450 total cases
-- Single-round federated learning
-- In-memory model aggregation
+Current protections:
 
-### Production Scaling
-- Support 100+ hospitals
-- Millions of cases
-- Multi-round federated learning
-- Distributed model aggregation
-- Asynchronous training
-- Model versioning
-- Rollback capabilities
+- Role-based routing on the frontend
+- Mongoose validation at the model layer
+- Protected app routes after authentication
+- Separation of role feature routes on the backend
 
-## Security Measures
+Recommended production hardening:
 
-### Current
-- Row Level Security (RLS) on database
-- CORS protection
-- Input validation
-- Data isolation
-
-### Production Requirements
-- JWT authentication
-- Role-based access control (RBAC)
-- API rate limiting
-- Encrypted data transmission (HTTPS)
+- Server-side JWT authentication
+- Role-based authorization middleware
+- HTTPS everywhere
+- Rate limiting
 - Audit logging
-- HIPAA compliance
-- Differential privacy algorithms
 
-## Technology Choices
+## Why This Architecture Fits The App
 
-### Frontend: React + TypeScript
-- **Why**: Type safety, component reusability, large ecosystem
-- **Trade-offs**: Larger bundle size vs vanilla JS
+This structure keeps each role focused on its own work:
 
-### Backend: FastAPI
-- **Why**: High performance, automatic API docs, async support
-- **Trade-offs**: Python ecosystem vs Go/Rust performance
+- Hospital users manage data generation and local model activity.
+- Government admins monitor the entire platform and export reports.
+- Health officials respond to outbreaks and interpret regional risk.
 
-### Database: PostgreSQL (Supabase)
-- **Why**: ACID compliance, JSON support, mature ecosystem
-- **Trade-offs**: Vertical scaling limits vs NoSQL horizontal scaling
-
-### ML: Scikit-learn
-- **Why**: Simple API, well-tested, good for tabular data
-- **Trade-offs**: Limited deep learning vs TensorFlow/PyTorch
-
-## Future Enhancements
-
-1. **Advanced FL Algorithms**
-   - FedProx (handling heterogeneous data)
-   - FedAvg with momentum
-   - Personalized federated learning
-
-2. **Deep Learning Models**
-   - LSTM for time-series prediction
-   - CNNs for medical imaging (if applicable)
-   - Transformer models for symptom analysis
-
-3. **Privacy Enhancements**
-   - Secure multi-party computation (SMPC)
-   - Homomorphic encryption
-   - Differential privacy with epsilon bounds
-
-4. **Real-time Processing**
-   - WebSocket connections for live updates
-   - Stream processing for continuous learning
-   - Real-time alert notifications
-
-5. **Geographic Analysis**
-   - Interactive maps with heatmaps
-   - Spatial clustering algorithms
-   - Movement pattern analysis
-
-## Conclusion
-
-Auralis demonstrates a practical implementation of federated learning for healthcare surveillance. The architecture prioritizes data privacy while maintaining model accuracy, showcasing how AI can be deployed in sensitive domains without compromising patient confidentiality.
+At the same time, all three roles use the same backend collections, so the system stays consistent and easy to extend.

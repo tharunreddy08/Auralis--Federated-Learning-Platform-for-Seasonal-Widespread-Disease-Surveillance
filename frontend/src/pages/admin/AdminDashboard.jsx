@@ -4,6 +4,7 @@ import { Activity, Building2, AlertTriangle, Brain, TrendingUp, Users } from "lu
 import StatCard from "../../components/dashboard/StatCard";
 import DiseaseChart from "../../components/dashboard/DiseaseChart";
 import AlertsList from "../../components/dashboard/AlertsList";
+import DashboardHero from "../../components/dashboard/DashboardHero";
 import { monthlyTrendData, diseaseDistribution, sampleAlerts } from "../../lib/sampleData";
 import { motion } from "framer-motion";
 
@@ -44,13 +45,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          National disease surveillance overview
-        </p>
-      </motion.div>
+      <DashboardHero
+        badge="National Control View"
+        title="Admin Dashboard"
+        description="Live overview of national disease activity, reporting nodes, and federated model health."
+        items={[
+          { label: "Active Alerts", value: activeAlerts.length, icon: AlertTriangle },
+          { label: "Connected Hospitals", value: activeHospitals.length || 0, icon: Building2 },
+          { label: "Monitored Records", value: patientCount.toLocaleString(), icon: Activity },
+        ]}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,18 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Building2, Eye, Activity, ArrowRight, Globe } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const roles = [
-  {
-    id: "admin",
-    title: "Government Admin",
-    description: "Manage hospitals, view nationwide analytics, configure federated learning, and monitor disease outbreaks.",
-    icon: Shield,
-    path: "/admin",
-    gradient: "from-primary/20 to-primary/5",
-    borderColor: "hover:border-primary/40",
-    iconColor: "text-primary",
-  },
   {
     id: "hospital",
     title: "Hospital Portal",
@@ -22,6 +13,16 @@ const roles = [
     gradient: "from-accent/20 to-accent/5",
     borderColor: "hover:border-accent/40",
     iconColor: "text-accent",
+  },
+  {
+    id: "admin",
+    title: "Government Admin",
+    description: "Manage hospitals, view nationwide analytics, configure federated learning, and monitor disease outbreaks.",
+    icon: Shield,
+    path: "/admin",
+    gradient: "from-primary/20 to-primary/5",
+    borderColor: "hover:border-primary/40",
+    iconColor: "text-primary",
   },
   {
     id: "official",
@@ -56,6 +57,7 @@ export default function RoleSelection() {
             <Globe className="w-3.5 h-3.5" />
             <span>Secure • Federated • Real-time</span>
           </div>
+          <ThemeToggle className="sm:ml-3" />
         </div>
       </header>
 

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, Clock, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 const severityConfig = {
@@ -14,10 +14,10 @@ const statusBadge = {
   resolved: "bg-success/15 text-success",
 };
 
-export default function AlertsList({ alerts = [], compact = false }) {
+export default function AlertsList({ alerts = [], compact = false, showResolutionDetails = false, renderActions }) {
   if (alerts.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-8 text-center">
+      <div className="glass-panel rounded-xl p-8 text-center">
         <CheckCircle className="w-10 h-10 text-success mx-auto mb-3" />
         <p className="text-sm font-medium">No active alerts</p>
         <p className="text-xs text-muted-foreground mt-1">All systems operating normally</p>
@@ -36,7 +36,7 @@ export default function AlertsList({ alerts = [], compact = false }) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={`border rounded-xl p-4 ${cfg.color} transition-all hover:shadow-md`}
+            className={`glass-panel rounded-xl p-4 ${cfg.color} transition-all hover:shadow-lg`}
           >
             <div className="flex items-start gap-3">
               <div className="mt-0.5">
@@ -63,6 +63,25 @@ export default function AlertsList({ alerts = [], compact = false }) {
                     </>
                   )}
                 </div>
+                {showResolutionDetails && alert.status === "resolved" && (
+                  <div className="mt-3 rounded-md border border-success/30 bg-success/10 p-2">
+                    {alert.admin_message && (
+                      <p className="text-xs font-medium text-success">Message to admin: {alert.admin_message}</p>
+                    )}
+                    {alert.resolution_note && (
+                      <p className="mt-1 text-xs opacity-80">Resolution note: {alert.resolution_note}</p>
+                    )}
+                    {(alert.resolved_by || alert.resolved_at) && (
+                      <p className="mt-1 text-[10px] uppercase tracking-wider opacity-70">
+                        {alert.resolved_by || "Health Official"}
+                        {alert.resolved_at ? ` • ${new Date(alert.resolved_at).toLocaleString()}` : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {typeof renderActions === "function" && (
+                  <div className="mt-3 flex justify-end">{renderActions(alert)}</div>
+                )}
               </div>
             </div>
           </motion.div>

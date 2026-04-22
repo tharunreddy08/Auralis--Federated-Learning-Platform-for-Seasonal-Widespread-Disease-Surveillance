@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { dataClient } from "@/api/dataClient";
+import { fetchOfficialHeatmapRisk } from "@/api/roleFeatureService";
 import { motion } from "framer-motion";
-import { Map, Filter } from "lucide-react";
+import { Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import HeatmapView from "../../components/dashboard/HeatmapView";
 
 const diseases = ["all", "influenza", "dengue", "malaria", "covid19", "cholera", "tuberculosis", "typhoid", "hepatitis"];
@@ -43,107 +44,44 @@ export default function OfficialHeatmap() {
   const [points, setPoints] = useState([]);
   const [diseaseFilter, setDiseaseFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
+  const [filters, setFilters] = useState({ region: "", startDate: "", endDate: "" });
+
+  const loadPoints = async (nextFilters = filters) => {
+    try {
+      const response = await fetchOfficialHeatmapRisk(nextFilters);
+      const mapped = (response?.items || [])
+        .map((item) => {
+          const regionKey = normalizeKey(item.region);
+          const fallback = fallbackRegionCoords[regionKey] || null;
+          const lat = Number(item.latitude);
+          const lng = Number(item.longitude);
+          const coords = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : fallback;
+          if (!coords) {
+            return null;
+          }
+
+          return {
+            lat: coords.lat,
+            lng: coords.lng,
+            region: item.region,
+            disease: normalizeDisease(item.disease),
+            cases: item.cases,
+            severity: normalizeSeverity(item.riskLevel),
+            label: item.region,
+          };
+        })
+        .filter(Boolean);
+
+      setPoints(mapped);
+    } catch (error) {
+      console.error("Failed to load heatmap points:", error);
+      setPoints([]);
+    }
+  };
 
   useEffect(() => {
-    const loadPoints = async () => {
-      try {
-        const [patientRows, alerts, hospitals] = await Promise.all([
-          dataClient.entities.PatientData.list("-report_date", 5000),
-          dataClient.entities.DiseaseAlert.list("-created_date", 1000),
-          dataClient.entities.Hospital.list("-created_date", 1000),
-        ]);
-
-        const hospitalCoordByName = new Map(
-          hospitals
-            .filter((h) => Number.isFinite(Number(h.latitude)) && Number.isFinite(Number(h.longitude)))
-            .map((h) => [
-              normalizeKey(h.name),
-              { lat: Number(h.latitude), lng: Number(h.longitude) },
-            ])
-        );
-
-        const regionCoordByName = new Map();
-        for (const h of hospitals) {
-          const regionKey = normalizeKey(h.region);
-          const lat = Number(h.latitude);
-          const lng = Number(h.longitude);
-          if (!regionKey || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-          const existing = regionCoordByName.get(regionKey) || { lat: 0, lng: 0, count: 0 };
-          existing.lat += lat;
-          existing.lng += lng;
-          existing.count += 1;
-          regionCoordByName.set(regionKey, existing);
-        }
-
-        const resolveCoords = (row) => {
-          const explicitLat = Number(row.latitude);
-          const explicitLng = Number(row.longitude);
-          if (Number.isFinite(explicitLat) && Number.isFinite(explicitLng)) {
-            return { lat: explicitLat, lng: explicitLng };
-          }
-
-          const byHospital = hospitalCoordByName.get(normalizeKey(row.hospital_name));
-          if (byHospital) {
-            return byHospital;
-          }
-
-          const regionKey = normalizeKey(row.region);
-          const regionAgg = regionCoordByName.get(regionKey);
-          if (regionAgg && regionAgg.count > 0) {
-            return {
-              lat: regionAgg.lat / regionAgg.count,
-              lng: regionAgg.lng / regionAgg.count,
-            };
-          }
-
-          const fallback = fallbackRegionCoords[regionKey];
-          if (fallback) {
-            return fallback;
-          }
-
-          return null;
-        };
-
-        const patientPoints = patientRows
-          .map((row) => {
-            const coords = resolveCoords(row);
-            if (!coords) return null;
-
-            return {
-              lat: coords.lat,
-              lng: coords.lng,
-              region: row.region || "Unknown",
-              disease: normalizeDisease(row.disease || "unknown"),
-              cases: 1,
-              severity: normalizeSeverity(row.severity),
-              label: row.hospital_name || row.region || "Unknown",
-            };
-          })
-          .filter(Boolean);
-
-        const alertPoints = alerts
-          .filter((a) => Number.isFinite(Number(a.latitude)) && Number.isFinite(Number(a.longitude)))
-          .map((a) => ({
-            lat: Number(a.latitude),
-            lng: Number(a.longitude),
-            region: a.region || "Unknown",
-            disease: normalizeDisease(a.disease || "unknown"),
-            cases: Number(a.case_count ?? 1),
-            severity: normalizeSeverity(a.severity),
-            label: a.title || a.region || "Alert",
-          }));
-
-        const mapped = [...patientPoints, ...alertPoints];
-
-        setPoints(mapped);
-      } catch (error) {
-        console.error("Failed to load heatmap points:", error);
-        setPoints([]);
-      }
-    };
-
     loadPoints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = points.filter((p) => {
@@ -162,7 +100,10 @@ export default function OfficialHeatmap() {
       </motion.div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-end">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3 lg:grid-cols-5">
+        <Input placeholder="Region" value={filters.region} onChange={(e) => setFilters((prev) => ({ ...prev, region: e.target.value }))} />
+        <Input type="date" value={filters.startDate} onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))} />
+        <Input type="date" value={filters.endDate} onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))} />
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Disease</label>
           <Select value={diseaseFilter} onValueChange={setDiseaseFilter}>
@@ -184,9 +125,17 @@ export default function OfficialHeatmap() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => { setDiseaseFilter("all"); setSeverityFilter("all"); }}
+          onClick={() => {
+            setDiseaseFilter("all");
+            setSeverityFilter("all");
+            setFilters({ region: "", startDate: "", endDate: "" });
+            loadPoints({ region: "", startDate: "", endDate: "" });
+          }}
         >
           Reset Filters
+        </Button>
+        <Button size="sm" onClick={() => loadPoints()}>
+          Apply
         </Button>
       </div>
 

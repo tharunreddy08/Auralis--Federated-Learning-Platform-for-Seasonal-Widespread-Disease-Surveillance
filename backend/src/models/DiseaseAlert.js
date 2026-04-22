@@ -10,6 +10,10 @@ const diseaseAlertSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     case_count: { type: Number, default: 0 },
     status: { type: String, required: true, enum: ALERT_STATUSES },
+    resolved_by: { type: String, trim: true },
+    resolved_at: { type: Date },
+    resolution_note: { type: String, trim: true },
+    admin_message: { type: String, trim: true },
     latitude: { type: Number },
     longitude: { type: Number }
   },

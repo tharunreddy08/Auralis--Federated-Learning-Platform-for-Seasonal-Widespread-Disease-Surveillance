@@ -1,23 +1,21 @@
 import { useState } from "react";
 import { dataClient } from "@/api/dataClient";
-import { Brain, Play, CheckCircle, Loader2, Zap, Database, Target } from "lucide-react";
+import { Brain, Play, CheckCircle, Loader2, Zap, Database, Target, Zap as ZapIcon, TrendingUp, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 
-const modelTypes = [
-  { value: "logistic_regression", label: "Logistic Regression", desc: "Fast, interpretable binary classifier" },
-  { value: "random_forest", label: "Random Forest", desc: "Ensemble method, handles non-linear patterns" },
-  { value: "gradient_boosting", label: "Gradient Boosting", desc: "High accuracy, sequential tree building" },
-  { value: "neural_network", label: "Neural Network", desc: "Deep learning for complex patterns" },
-];
+const RANDOM_FOREST_MODEL = {
+  value: "random_forest",
+  label: "Random Forest",
+  desc: "Ensemble method, handles non-linear patterns"
+};
 
 export default function TrainModel() {
   const { toast } = useToast();
-  const [modelType, setModelType] = useState("gradient_boosting");
+  const [modelType] = useState(RANDOM_FOREST_MODEL.value);
   const [phase, setPhase] = useState("idle"); // idle, loading, preprocessing, training, evaluating, complete
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
@@ -76,10 +74,8 @@ export default function TrainModel() {
     toast({ title: "Training Complete", description: `Model accuracy: ${(accuracy * 100).toFixed(1)}%` });
   };
 
-  const selectedModel = modelTypes.find(m => m.value === modelType);
-
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-5xl">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold tracking-tight">Train Local Model</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -87,23 +83,47 @@ export default function TrainModel() {
         </p>
       </motion.div>
 
-      {/* Model Selection */}
-      <div className="bg-card border border-border rounded-xl p-6 space-y-5">
-        <div className="space-y-2">
-          <Label>Model Architecture</Label>
-          <Select value={modelType} onValueChange={setModelType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {modelTypes.map(m => (
-                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedModel && (
-            <p className="text-xs text-muted-foreground">{selectedModel.desc}</p>
-          )}
-        </div>
+      {/* Model Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <Brain className="w-5 h-5 text-primary" />
+            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">ACTIVE</span>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Model Type</p>
+            <p className="text-lg font-bold mt-1">{RANDOM_FOREST_MODEL.label}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">{RANDOM_FOREST_MODEL.desc}</p>
+        </motion.div>
 
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card border border-border rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <Database className="w-5 h-5 text-accent" />
+            <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-1 rounded">NEW</span>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Training Data</p>
+            <p className="text-lg font-bold mt-1">Your Hospital</p>
+          </div>
+          <p className="text-xs text-muted-foreground">Patient records + historical diagnoses</p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <TrendingUp className="w-5 h-5 text-success" />
+            <span className="text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded">~6 MIN</span>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Duration</p>
+            <p className="text-lg font-bold mt-1">Quick Train</p>
+          </div>
+          <p className="text-xs text-muted-foreground">Data load → Train → Evaluate</p>
+        </motion.div>
+      </div>
+
+      {/* Start Training Button */}
+      <div className="bg-card border border-border rounded-xl p-6">
         <Button
           onClick={simulateTraining}
           disabled={phase !== "idle" && phase !== "complete"}

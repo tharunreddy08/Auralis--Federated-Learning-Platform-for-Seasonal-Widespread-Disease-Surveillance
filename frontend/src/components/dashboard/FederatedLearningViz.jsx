@@ -5,17 +5,20 @@ import { Brain, Building2, Server, ArrowRight, Check, Loader2 } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
-const hospitals = [
+const defaultHospitals = [
   { name: "Hospital A", accuracy: 0, status: "idle" },
   { name: "Hospital B", accuracy: 0, status: "idle" },
   { name: "Hospital C", accuracy: 0, status: "idle" },
   { name: "Hospital D", accuracy: 0, status: "idle" },
 ];
 
-export default function FederatedLearningViz({ onComplete }) {
+export default function FederatedLearningViz({ onComplete, hospitals = [] }) {
   const [round, setRound] = useState(0);
   const [phase, setPhase] = useState("idle"); // idle, training, sending, aggregating, complete
-  const [nodes, setNodes] = useState(hospitals);
+  const hospitalsList = hospitals.length > 0 
+    ? hospitals.map(h => ({ name: h.name, accuracy: 0, status: "idle" }))
+    : defaultHospitals;
+  const [nodes, setNodes] = useState(hospitalsList);
   const [globalAccuracy, setGlobalAccuracy] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 

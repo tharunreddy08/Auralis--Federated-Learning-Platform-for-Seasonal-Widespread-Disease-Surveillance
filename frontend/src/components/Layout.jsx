@@ -1,18 +1,23 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { dataClient } from "@/api/dataClient";
+import { useAuth } from "@/lib/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   Activity,
   Shield,
   Building2,
   Eye,
+  Map,
   LayoutDashboard,
   Bell,
   BarChart3,
   Upload,
   Brain,
   Send,
-  Settings,
+  FileText,
+  ClipboardList,
+  Table,
+  LineChart,
   LogOut,
   Menu,
   X,
@@ -32,6 +37,10 @@ const roleConfig = {
       { label: "Alerts", path: "/admin/alerts", icon: Bell },
       { label: "Analytics", path: "/admin/analytics", icon: BarChart3 },
       { label: "Federated Learning", path: "/admin/federated", icon: Brain },
+      { label: "Model Performance", path: "/admin/model-performance", icon: LineChart },
+      { label: "User Management", path: "/admin/users", icon: Users },
+      { label: "Reports & Export", path: "/admin/reports", icon: FileText },
+      { label: "System Logs", path: "/admin/system-logs", icon: ClipboardList },
     ],
   },
   hospital: {
@@ -43,6 +52,9 @@ const roleConfig = {
       { label: "Upload Data", path: "/hospital/upload", icon: Upload },
       { label: "Train Model", path: "/hospital/train", icon: Brain },
       { label: "Model Updates", path: "/hospital/updates", icon: Send },
+      { label: "Data History", path: "/hospital/data-history", icon: Table },
+      { label: "Training History", path: "/hospital/training-history", icon: ClipboardList },
+      { label: "Model Performance", path: "/hospital/model-performance", icon: LineChart },
     ],
   },
   official: {
@@ -52,8 +64,10 @@ const roleConfig = {
     nav: [
       { label: "Dashboard", path: "/official", icon: LayoutDashboard },
       { label: "Alerts", path: "/official/alerts", icon: Bell },
+      { label: "Heatmap", path: "/official/heatmap", icon: Map },
       { label: "Analytics", path: "/official/analytics", icon: BarChart3 },
       { label: "AI Prediction", path: "/official/prediction", icon: Brain },
+      { label: "Reports", path: "/official/reports", icon: FileText },
     ],
   },
 };
@@ -61,6 +75,7 @@ const roleConfig = {
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const currentRole = location.pathname.startsWith("/admin")
@@ -86,12 +101,17 @@ export default function Layout() {
     navigate("/hospital/updates");
   };
 
-  const handleLogout = async () => {
-    navigate("/");
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="relative flex h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-16 left-[24%] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-8 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+      </div>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -167,15 +187,15 @@ export default function Layout() {
               text-sidebar-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-all"
           >
             <LogOut className="w-4 h-4" />
-            <span>Switch Role</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center px-4 lg:px-8 gap-4 shrink-0">
+        <header className="h-16 border-b border-border/70 bg-card/75 backdrop-blur-xl flex items-center px-4 lg:px-8 gap-4 shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -188,6 +208,7 @@ export default function Layout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
+            <ThemeToggle className="h-8 w-8" />
             <button
               type="button"
               onClick={handleNotificationClick}

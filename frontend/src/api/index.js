@@ -6,3 +6,4 @@ export * from './patientDataService.js';
 export * from './modelUpdateService.js';
 export * from './diseaseAlertService.js';
 export * from './predictionService.js';
+export * from './roleFeatureService.js';

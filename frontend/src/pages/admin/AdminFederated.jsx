@@ -8,14 +8,26 @@ import StatCard from "../../components/dashboard/StatCard";
 export default function AdminFederated() {
   const [modelUpdates, setModelUpdates] = useState([]);
   const [roundHistory, setRoundHistory] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
 
   useEffect(() => {
     loadUpdates();
+    loadHospitals();
   }, []);
 
   const loadUpdates = async () => {
     const data = await dataClient.entities.ModelUpdate.list("-created_date", 20);
     setModelUpdates(data);
+  };
+
+  const loadHospitals = async () => {
+    try {
+      const data = await dataClient.entities.Hospital.list("-created_date", 50);
+      setHospitals(data);
+    } catch (error) {
+      console.error("Failed to load hospitals:", error);
+      setHospitals([]);
+    }
   };
 
   const handleRoundComplete = async (round, accuracy) => {
@@ -54,7 +66,7 @@ export default function AdminFederated() {
         <StatCard title="Global Accuracy" value={`${((latestAccuracy || 0.942) * 100).toFixed(1)}%`} icon={Brain} color="primary" />
       </div>
 
-      <FederatedLearningViz onComplete={handleRoundComplete} />
+      <FederatedLearningViz onComplete={handleRoundComplete} hospitals={hospitals} />
 
       {/* Round history */}
       {roundHistory.length > 0 && (

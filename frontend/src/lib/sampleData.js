@@ -61,6 +61,15 @@ export const weeklyData = [
   { name: "Sun", cases: 156 },
 ];
 
+export const annualData = [
+  { name: "2020", cases: 3200 },
+  { name: "2021", cases: 5600 },
+  { name: "2022", cases: 4800 },
+  { name: "2023", cases: 6200 },
+  { name: "2024", cases: 8100 },
+  { name: "2025", cases: 9450 },
+];
+
 export const sampleHospitals = [
   { name: "City General Hospital", code: "CGH-001", location: "New Delhi", latitude: 28.6, longitude: 77.2, status: "active", total_patients: 1240, region: "North Region", contact_email: "admin@cgh.org" },
   { name: "Metro Health Center", code: "MHC-002", location: "Mumbai", latitude: 19.0, longitude: 72.8, status: "active", total_patients: 980, region: "West Region", contact_email: "admin@mhc.org" },

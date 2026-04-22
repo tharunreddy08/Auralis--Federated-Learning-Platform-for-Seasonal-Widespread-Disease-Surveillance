@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { DiseaseAlert, Hospital, ModelUpdate, PatientData, Prediction } from '../models/index.js';
 import { createCrudRouter } from './createCrudRouter.js';
+import adminFeatureRoutes from './adminFeatureRoutes.js';
+import hospitalFeatureRoutes from './hospitalFeatureRoutes.js';
+import officialFeatureRoutes from './officialFeatureRoutes.js';
 
 const router = Router();
 
@@ -204,5 +207,9 @@ router.use('/hospitals', createCrudRouter(Hospital));
 router.use('/model-updates', createCrudRouter(ModelUpdate));
 router.use('/patient-data', createCrudRouter(PatientData));
 router.use('/predictions', createCrudRouter(Prediction));
+
+router.use('/admin', adminFeatureRoutes);
+router.use('/hospital', hospitalFeatureRoutes);
+router.use('/official', officialFeatureRoutes);
 
 export default router;
